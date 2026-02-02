@@ -1,0 +1,62 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "clawdbot.fullname" . -}}
+{{- $svcPort := .Values.service.port -}}
+{{- $domain := .Values.ingress.domain -}}
+{{- $tlsEnabled := .Values.ingress.tls.enabled -}}
+{{- $tlsSecretName := .Values.ingress.tls.secretName | default (printf "%s-tls" $fullName) -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "clawdbot.labels" . | nindent 4 }}
+  annotations:
+    {{- if and $tlsEnabled .Values.ingress.tls.certManager.enabled }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls.certManager.issuer | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if $tlsEnabled }}
+  tls:
+    - hosts:
+        {{- if $domain }}
+        - {{ $domain | quote }}
+        {{- end }}
+        {{- range .Values.ingress.hosts }}
+        - {{ .host | quote }}
+        {{- end }}
+      secretName: {{ $tlsSecretName }}
+  {{- end }}
+  rules:
+    {{- if $domain }}
+    - host: {{ $domain | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+    {{- end }}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+          {{- end }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,11 @@
+{{- if .Values.config.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openclaw.configMapName" . }}
+  labels:
+    {{- include "openclaw.labels" . | nindent 4 }}
+data:
+  openclaw.json: |
+    {{ .Values.config.data | toJson | nindent 4 }}
+{{- end }}

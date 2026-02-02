@@ -1,0 +1,298 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "openclaw.fullname" . }}
+  labels:
+    {{- include "openclaw.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "openclaw.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openclaw.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.config.create }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.secrets.create }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "openclaw.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openclaw.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if or .Values.config.create .Values.onboarding.enabled .Values.initContainers }}
+      initContainers:
+        {{- if .Values.config.create }}
+        # Copy config from ConfigMap to state directory (idempotent)
+        - name: init-config
+          image: {{ include "openclaw.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "Initializing configuration..."
+              mkdir -p /home/node/.openclaw
+              if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+                echo "Copying default config..."
+                cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+                echo "Config initialized"
+              else
+                echo "Config already exists, skipping"
+              fi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /home/node/.openclaw
+              subPath: openclaw-state
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+        {{- end }}
+        {{- if .Values.onboarding.enabled }}
+        # Run non-interactive onboarding (idempotent - checks marker file)
+        - name: onboarding
+          image: {{ include "openclaw.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              MARKER_FILE="{{ .Values.onboarding.markerFile }}"
+              if [ -f "$MARKER_FILE" ]; then
+                echo "Onboarding marker file exists ($MARKER_FILE), skipping onboarding"
+                exit 0
+              fi
+              echo "Running non-interactive onboarding..."
+              node dist/index.js onboard --non-interactive --no-install-daemon {{ range .Values.onboarding.extraArgs }}{{ . }} {{ end }}
+              echo "Onboarding complete"
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: gatewayToken
+            {{- if or .Values.secrets.data.claudeSessionKey .Values.secrets.existingSecret }}
+            - name: CLAUDE_AI_SESSION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: claudeSessionKey
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.claudeWebKey .Values.secrets.existingSecret }}
+            - name: CLAUDE_WEB_SESSION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: claudeWebKey
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.claudeWebCookie .Values.secrets.existingSecret }}
+            - name: CLAUDE_WEB_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: claudeWebCookie
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.anthropicApiKey .Values.secrets.existingSecret }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: anthropicApiKey
+                  optional: true
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.openclaw
+              subPath: openclaw-state
+            - name: data
+              mountPath: /home/node/.openclaw/workspace
+              subPath: openclaw-workspace
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+        {{- end }}
+        {{- with .Values.initContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: gateway
+          image: {{ include "openclaw.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - node
+            - dist/index.js
+            - gateway
+            - --bind
+            - {{ .Values.gateway.bind }}
+            - --port
+            - {{ .Values.gateway.port | quote }}
+            {{- if .Values.gateway.allowUnconfigured }}
+            - --allow-unconfigured
+            {{- end }}
+            {{- range .Values.gateway.extraArgs }}
+            - {{ . }}
+            {{- end }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: OPENCLAW_GATEWAY_PORT
+              value: {{ .Values.gateway.port | quote }}
+            - name: OPENCLAW_BRIDGE_PORT
+              value: {{ .Values.gateway.bridgePort | quote }}
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: gatewayToken
+            {{- if or .Values.secrets.data.claudeSessionKey .Values.secrets.existingSecret }}
+            - name: CLAUDE_AI_SESSION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: claudeSessionKey
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.claudeWebKey .Values.secrets.existingSecret }}
+            - name: CLAUDE_WEB_SESSION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: claudeWebKey
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.claudeWebCookie .Values.secrets.existingSecret }}
+            - name: CLAUDE_WEB_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: claudeWebCookie
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.anthropicApiKey .Values.secrets.existingSecret }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: anthropicApiKey
+                  optional: true
+            {{- end }}
+            {{- if or .Values.secrets.data.openaiApiKey .Values.secrets.existingSecret }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: openaiApiKey
+                  optional: true
+            {{- end }}
+          ports:
+            - name: gateway
+              containerPort: {{ .Values.gateway.port }}
+              protocol: TCP
+            - name: bridge
+              containerPort: {{ .Values.gateway.bridgePort }}
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.openclaw
+              subPath: openclaw-state
+            - name: data
+              mountPath: /home/node/.openclaw/workspace
+              subPath: openclaw-workspace
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+        {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if .Values.config.create }}
+        - name: config
+          configMap:
+            name: {{ include "openclaw.configMapName" . }}
+        {{- end }}
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        {{- with .Values.persistence.selector }}
+        selector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+  {{- end }}

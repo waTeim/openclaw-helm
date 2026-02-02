@@ -1,0 +1,331 @@
+# Default values for openclaw.
+# This is a YAML-formatted file.
+
+# =============================================================================
+# IMAGE CONFIGURATION
+# =============================================================================
+image:
+  registry: ghcr.io
+  repository: openclaw/openclaw
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# =============================================================================
+# REPLICA COUNT
+# =============================================================================
+# IMPORTANT: OpenClaw is a single-user, stateful application.
+# replicaCount MUST be 1. Scaling beyond 1 is not supported and will cause
+# data corruption and undefined behavior.
+replicaCount: 1
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount API credentials (set false for least privilege)
+  automount: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# =============================================================================
+# RBAC (Optional - Least Privilege by Default)
+# =============================================================================
+# Enable RBAC only if OpenClaw needs to create pods/jobs in its namespace
+# (e.g., for sandbox execution). This is NOT required for basic operation.
+rbac:
+  # Create a namespaced Role and RoleBinding
+  create: false
+  # Rules to add to the Role (only affects release namespace)
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "pods/log"]
+      verbs: ["get", "list", "watch", "create", "delete"]
+    - apiGroups: ["batch"]
+      resources: ["jobs"]
+      verbs: ["get", "list", "watch", "create", "delete"]
+
+# =============================================================================
+# POD CONFIGURATION
+# =============================================================================
+podAnnotations: {}
+podLabels: {}
+
+# Pod security context - secure defaults for PodSecurity "restricted" compatibility
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context - least privilege
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  # Node.js needs write access to /tmp and home directory
+  readOnlyRootFilesystem: false
+
+# =============================================================================
+# GATEWAY CONFIGURATION
+# =============================================================================
+gateway:
+  # Binding mode: loopback (localhost only), lan (all interfaces), auto
+  # Use "lan" for Kubernetes (required for Service/Ingress access)
+  bind: lan
+  # Gateway port (HTTP API and WebUI)
+  port: 18789
+  # Bridge port (inter-process communication)
+  bridgePort: 18790
+  # Allow startup without complete configuration
+  allowUnconfigured: false
+  # Additional CLI arguments
+  extraArgs: []
+
+# =============================================================================
+# ONBOARDING CONFIGURATION
+# =============================================================================
+# OpenClaw requires initial setup. Options:
+# 1. Pre-configured: Mount existing config/state (onboarding.enabled: false)
+# 2. Automatic: Run non-interactive onboarding via initContainer
+onboarding:
+  # Enable automatic onboarding via initContainer
+  enabled: false
+  # Marker file to check for idempotency (skips onboarding if exists)
+  markerFile: "/home/node/.openclaw/credentials/anthropic:default.json"
+  # Additional onboarding arguments
+  extraArgs: []
+
+# =============================================================================
+# ENVIRONMENT VARIABLES (non-sensitive)
+# =============================================================================
+env:
+  NODE_ENV: production
+  HOME: /home/node
+  TERM: xterm-256color
+  BROWSER: "echo"  # Suppress browser launch attempts
+  OPENCLAW_STATE_DIR: /home/node/.openclaw
+  OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+
+# =============================================================================
+# SECRETS CONFIGURATION
+# =============================================================================
+# IMPORTANT: Never commit API keys to Git. Use existingSecret in production.
+secrets:
+  # Create secret from values (dev/testing only)
+  create: true
+  # Use existing secret (production - recommended)
+  existingSecret: ""
+  # Secret data (only used if create: true)
+  # Keys map to environment variables:
+  #   gatewayToken     -> OPENCLAW_GATEWAY_TOKEN (auto-generated if empty)
+  #   claudeSessionKey -> CLAUDE_AI_SESSION_KEY
+  #   claudeWebKey     -> CLAUDE_WEB_SESSION_KEY
+  #   claudeWebCookie  -> CLAUDE_WEB_COOKIE
+  #   anthropicApiKey  -> ANTHROPIC_API_KEY (optional, for API auth)
+  #   openaiApiKey     -> OPENAI_API_KEY (optional)
+  data:
+    gatewayToken: ""  # Auto-generated 64-char hex if empty
+    claudeSessionKey: ""
+    claudeWebKey: ""
+    claudeWebCookie: ""
+    anthropicApiKey: ""
+    openaiApiKey: ""
+
+# =============================================================================
+# CONFIG FILE (openclaw.json)
+# =============================================================================
+config:
+  # Create ConfigMap from inline config
+  create: true
+  # Use existing ConfigMap
+  existingConfigMap: ""
+  # Config data (JSON5 format, rendered to openclaw.json)
+  data:
+    agents:
+      defaults:
+        model:
+          primary: "anthropic/claude-opus-4-5"
+          fallbacks:
+            - "anthropic/claude-sonnet-4-5"
+            - "openai/gpt-4o"
+        maxConcurrent: 4
+        sandbox:
+          mode: "off"  # Disable Docker-in-Docker for Kubernetes
+      list:
+        - id: main
+          default: true
+    auth:
+      profiles:
+        "anthropic:default":
+          mode: token
+          provider: anthropic
+        "openai:default":
+          mode: token
+          provider: openai
+    gateway:
+      mode: local
+      bind: auto
+      auth:
+        mode: token
+      controlUi:
+        enabled: true
+    channels: {}
+
+# =============================================================================
+# PERSISTENCE
+# =============================================================================
+# IMPORTANT: Persistence is required for production use. Without it, all state
+# (configuration, sessions, credentials) is lost on pod restart.
+persistence:
+  enabled: true
+  # Storage class (empty = cluster default)
+  storageClass: ""
+  # Access mode (ReadWriteOnce for single-replica)
+  accessMode: ReadWriteOnce
+  # Volume size (recommended: 10Gi+)
+  size: 10Gi
+  # Annotations for the PVC
+  annotations: {}
+  # Selector for the PVC
+  selector: {}
+
+# =============================================================================
+# SERVICE CONFIGURATION
+# =============================================================================
+service:
+  type: ClusterIP
+  # Gateway port
+  port: 18789
+  # Bridge port (optional, usually only needed internally)
+  bridgePort: 18790
+  # Enable bridge port in service
+  bridgeEnabled: false
+  annotations: {}
+
+# =============================================================================
+# INGRESS CONFIGURATION
+# =============================================================================
+ingress:
+  enabled: false
+  className: nginx
+
+  # Simplified domain configuration (recommended)
+  domain: ""  # e.g., "openclaw.yourdomain.com"
+
+  # TLS configuration
+  tls:
+    enabled: false
+    # Secret name for TLS certificate (auto-generated name if empty)
+    secretName: ""
+    # Use cert-manager for automatic certificate provisioning
+    certManager:
+      enabled: false
+      issuer: "letsencrypt-prod"
+
+  # Additional annotations
+  annotations: {}
+    # WebSocket support (recommended for real-time features):
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    # nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+
+  # Advanced: Manual host configuration (overrides domain if set)
+  hosts: []
+  #  - host: openclaw.example.com
+  #    paths:
+  #      - path: /
+  #        pathType: Prefix
+
+# =============================================================================
+# RESOURCE LIMITS
+# =============================================================================
+resources:
+  limits:
+    memory: 2Gi
+    cpu: 1000m
+  requests:
+    memory: 512Mi
+    cpu: 250m
+
+# =============================================================================
+# PROBES
+# =============================================================================
+# Startup probe: Allow time for initial startup
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: gateway
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30  # 150 seconds max startup time
+
+# Readiness probe: Quick check if ready to receive traffic
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: gateway
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Liveness probe: Thorough health check
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - node
+      - dist/index.js
+      - health
+  initialDelaySeconds: 60
+  periodSeconds: 60
+  timeoutSeconds: 30
+  failureThreshold: 3
+
+# =============================================================================
+# LIFECYCLE HOOKS
+# =============================================================================
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - sh
+        - -c
+        - rm -f /home/node/.openclaw/gateway.*.lock; sleep 10
+
+# =============================================================================
+# SCHEDULING
+# =============================================================================
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# =============================================================================
+# EXTRA CONTAINERS AND INIT CONTAINERS
+# =============================================================================
+# Additional init containers (run before main container)
+initContainers: []
+
+# Additional containers (sidecars)
+extraContainers: []
+
+# Extra volumes to add to the pod
+extraVolumes: []
+
+# Extra volume mounts for the main container
+extraVolumeMounts: []

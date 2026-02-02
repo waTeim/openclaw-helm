@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "default": 1,
+      "description": "Must be 1. OpenClaw is a single-user, stateful application that does not support horizontal scaling."
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "description": "Container registry (e.g., ghcr.io)"
+        },
+        "repository": {
+          "type": "string",
+          "description": "Image repository"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Image tag (defaults to Chart appVersion)"
+        }
+      }
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "bind": {
+          "type": "string",
+          "enum": ["loopback", "lan", "auto"],
+          "description": "Gateway binding mode. Use 'lan' for Kubernetes deployments."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 18789,
+          "description": "Gateway HTTP port"
+        },
+        "bridgePort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 18790,
+          "description": "Bridge IPC port"
+        },
+        "allowUnconfigured": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow startup without complete configuration"
+        }
+      }
+    },
+    "onboarding": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic non-interactive onboarding via initContainer"
+        },
+        "markerFile": {
+          "type": "string",
+          "description": "File to check for idempotency (skips onboarding if exists)"
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable persistent storage"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^[0-9]+(Gi|Mi|Ti)$",
+          "description": "Volume size (e.g., 10Gi)"
+        },
+        "accessMode": {
+          "type": "string",
+          "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"],
+          "description": "PVC access mode"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Storage class name (empty = cluster default)"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer"],
+          "description": "Service type"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Gateway service port"
+        },
+        "bridgePort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Bridge service port"
+        },
+        "bridgeEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Expose bridge port in service"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable ingress"
+        },
+        "className": {
+          "type": "string",
+          "description": "Ingress class name"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain name for ingress"
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": false,
+          "description": "Create namespaced RBAC Role and RoleBinding"
+        }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": true,
+          "description": "Create service account"
+        },
+        "automount": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automount API credentials"
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": true,
+          "description": "Create secret from values (dev/test only)"
+        },
+        "existingSecret": {
+          "type": "string",
+          "description": "Use existing secret (production recommended)"
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": true,
+          "description": "Create ConfigMap from inline config"
+        },
+        "existingConfigMap": {
+          "type": "string",
+          "description": "Use existing ConfigMap"
+        }
+      }
+    }
+  },
+  "required": ["replicaCount"]
+}

@@ -1,0 +1,72 @@
+# Configuration with RBAC enabled for sandbox/job execution
+# Use this when OpenClaw needs to create pods/jobs in its namespace
+# Usage: helm install openclaw ./openclaw -f examples/values-rbac-operator.yaml
+
+# Standard image
+image:
+  registry: ghcr.io
+  repository: openclaw/openclaw
+  pullPolicy: IfNotPresent
+
+# Enable persistence
+persistence:
+  enabled: true
+  size: 10Gi
+
+# Enable namespaced RBAC for pod/job creation
+# NOTE: This only grants permissions within the release namespace (not cluster-wide)
+rbac:
+  create: true
+  rules:
+    # Allow creating pods for sandbox execution
+    - apiGroups: [""]
+      resources: ["pods", "pods/log", "pods/exec"]
+      verbs: ["get", "list", "watch", "create", "delete"]
+    # Allow creating jobs for background tasks
+    - apiGroups: ["batch"]
+      resources: ["jobs"]
+      verbs: ["get", "list", "watch", "create", "delete"]
+    # Allow creating configmaps for dynamic config
+    - apiGroups: [""]
+      resources: ["configmaps"]
+      verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+# Service account must automount credentials for RBAC to work
+serviceAccount:
+  create: true
+  automount: true
+
+# Enable sandbox mode in config (requires RBAC)
+config:
+  create: true
+  data:
+    agents:
+      defaults:
+        model:
+          primary: "anthropic/claude-opus-4-5"
+        maxConcurrent: 4
+        sandbox:
+          mode: "kubernetes"  # Enable Kubernetes-based sandboxing
+          image: "openclaw-sandbox:bookworm-slim"
+      list:
+        - id: main
+          default: true
+    auth:
+      profiles:
+        "anthropic:default":
+          mode: token
+          provider: anthropic
+    gateway:
+      mode: local
+      bind: auto
+      auth:
+        mode: token
+      controlUi:
+        enabled: true
+    channels: {}
+
+# Secrets
+secrets:
+  create: true
+  data:
+    gatewayToken: ""  # Auto-generated

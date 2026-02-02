@@ -1,0 +1,68 @@
+# Configuration with automatic non-interactive onboarding
+# The initContainer will run onboarding on first startup (idempotent)
+# Usage: helm install openclaw ./openclaw -f examples/values-noninteractive-onboard.yaml
+
+# Standard image
+image:
+  registry: ghcr.io
+  repository: openclaw/openclaw
+  pullPolicy: IfNotPresent
+
+# Enable persistence (required for onboarding state)
+persistence:
+  enabled: true
+  size: 10Gi
+
+# Enable automatic onboarding via initContainer
+# This runs: node dist/index.js onboard --non-interactive --no-install-daemon
+# Onboarding is idempotent: it checks for a marker file and skips if already done
+onboarding:
+  enabled: true
+  # Marker file checked for idempotency (onboarding skipped if this exists)
+  markerFile: "/home/node/.openclaw/credentials/anthropic:default.json"
+  extraArgs: []
+
+# Secrets must be provided for onboarding to succeed
+# IMPORTANT: At minimum, provide Claude session credentials for authentication
+secrets:
+  create: true
+  data:
+    gatewayToken: ""  # Auto-generated
+    # Provide at least one authentication method:
+    claudeSessionKey: ""     # <-- Add your CLAUDE_AI_SESSION_KEY
+    # claudeWebKey: ""       # Or CLAUDE_WEB_SESSION_KEY
+    # claudeWebCookie: ""    # Or CLAUDE_WEB_COOKIE
+    anthropicApiKey: ""      # <-- Add your ANTHROPIC_API_KEY (recommended)
+
+# Config for post-onboarding
+config:
+  create: true
+  data:
+    agents:
+      defaults:
+        model:
+          primary: "anthropic/claude-opus-4-5"
+          fallbacks:
+            - "anthropic/claude-sonnet-4-5"
+        maxConcurrent: 4
+        sandbox:
+          mode: "off"
+      list:
+        - id: main
+          default: true
+    auth:
+      profiles:
+        "anthropic:default":
+          mode: token
+          provider: anthropic
+    gateway:
+      mode: local
+      bind: auto
+      auth:
+        mode: token
+      controlUi:
+        enabled: true
+    channels: {}
+
+# Note: After installation, check onboarding logs with:
+# kubectl logs <release>-openclaw-0 -c onboarding

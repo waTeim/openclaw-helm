@@ -1,0 +1,78 @@
+# Configuration with Ingress and TLS via cert-manager
+# Usage: helm install openclaw ./openclaw -f examples/values-ingress.yaml
+
+# Production image
+image:
+  registry: ghcr.io
+  repository: openclaw/openclaw
+  pullPolicy: IfNotPresent
+
+# Production persistence
+persistence:
+  enabled: true
+  size: 20Gi
+  # storageClass: longhorn  # Uncomment for specific storage class
+
+# Production resources
+resources:
+  limits:
+    memory: 4Gi
+    cpu: 2000m
+  requests:
+    memory: 1Gi
+    cpu: 500m
+
+# Ingress with TLS
+ingress:
+  enabled: true
+  className: nginx
+  domain: openclaw.example.com  # <-- CHANGE THIS
+  tls:
+    enabled: true
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+  annotations:
+    # WebSocket support for real-time features
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+
+# Use existing secret (recommended for production)
+# Create with: kubectl create secret generic openclaw-secrets \
+#   --from-literal=gatewayToken=$(openssl rand -hex 32) \
+#   --from-literal=claudeSessionKey=YOUR_KEY \
+#   --from-literal=anthropicApiKey=YOUR_API_KEY
+secrets:
+  create: false
+  existingSecret: openclaw-secrets
+
+# Production config
+config:
+  create: true
+  data:
+    agents:
+      defaults:
+        model:
+          primary: "anthropic/claude-opus-4-5"
+          fallbacks:
+            - "anthropic/claude-sonnet-4-5"
+        maxConcurrent: 4
+        sandbox:
+          mode: "off"
+      list:
+        - id: main
+          default: true
+    auth:
+      profiles:
+        "anthropic:default":
+          mode: token
+          provider: anthropic
+    gateway:
+      mode: local
+      bind: auto
+      auth:
+        mode: token
+      controlUi:
+        enabled: true
+    channels: {}

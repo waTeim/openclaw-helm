@@ -1,0 +1,95 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your OpenClaw gateway is starting up.
+
+{{- if .Values.ingress.enabled }}
+{{- $domain := .Values.ingress.domain }}
+{{- $tlsEnabled := .Values.ingress.tls.enabled }}
+{{- if $domain }}
+
+==========================================================
+  OpenClaw is accessible at:
+
+{{- if $tlsEnabled }}
+    https://{{ $domain }}
+{{- else }}
+    http://{{ $domain }}
+{{- end }}
+==========================================================
+{{- end }}
+{{- end }}
+
+1. Check the gateway status:
+
+   kubectl get statefulset {{ include "openclaw.fullname" . }} -n {{ .Release.Namespace }}
+   kubectl logs -f {{ include "openclaw.fullname" . }}-0 -n {{ .Release.Namespace }}
+
+2. Access the Control UI:
+
+{{- if .Values.ingress.enabled }}
+{{- $domain := .Values.ingress.domain }}
+{{- $tlsEnabled := .Values.ingress.tls.enabled }}
+{{- if $domain }}
+{{- if $tlsEnabled }}
+   https://{{ $domain }}
+{{- else }}
+   http://{{ $domain }}
+{{- end }}
+{{- else }}
+{{- range .Values.ingress.hosts }}
+   https://{{ .host }}
+{{- end }}
+{{- end }}
+{{- else }}
+   # Port-forward to access locally:
+   kubectl port-forward {{ include "openclaw.fullname" . }}-0 {{ .Values.gateway.port }}:{{ .Values.gateway.port }} -n {{ .Release.Namespace }}
+
+   Then visit: http://localhost:{{ .Values.gateway.port }}
+{{- end }}
+
+3. Your gateway token (for authentication):
+
+   kubectl get secret {{ include "openclaw.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.gatewayToken}' | base64 -d && echo
+
+4. Configure channels:
+
+   # Discord
+   kubectl exec -it {{ include "openclaw.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+     node dist/index.js channels add --channel discord --token YOUR_BOT_TOKEN
+
+   # Telegram
+   kubectl exec -it {{ include "openclaw.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+     node dist/index.js channels add --channel telegram --token YOUR_BOT_TOKEN
+
+   # WhatsApp (interactive)
+   kubectl exec -it {{ include "openclaw.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+     node dist/index.js channels login
+
+5. Check health:
+
+   kubectl exec -it {{ include "openclaw.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+     node dist/index.js health
+
+Documentation: https://openclaw.bot/docs
+Support: https://github.com/openclaw/openclaw/issues
+
+{{- if not .Values.persistence.enabled }}
+
+WARNING: Persistence is DISABLED. All state (configuration, sessions,
+credentials) will be lost on pod restart. This is only suitable for testing.
+{{- end }}
+
+{{- if eq .Values.gateway.bind "loopback" }}
+
+WARNING: Gateway is bound to loopback. External access will not work.
+Use bind: "lan" for Kubernetes deployments.
+{{- end }}
+
+{{- if .Values.onboarding.enabled }}
+
+NOTE: Automatic onboarding is enabled. The initContainer will run
+non-interactive onboarding on first startup. Check init container logs
+if the pod fails to start:
+
+   kubectl logs {{ include "openclaw.fullname" . }}-0 -n {{ .Release.Namespace }} -c onboarding
+{{- end }}

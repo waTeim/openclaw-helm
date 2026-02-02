@@ -1,0 +1,28 @@
+apiVersion: v2
+name: openclaw
+description: A Helm chart for OpenClaw - a personal AI assistant with multi-channel support
+
+type: application
+
+# Chart version - increment on changes to chart templates
+version: 1.0.0
+
+# OpenClaw application version
+appVersion: "2026.1.25"
+
+home: https://openclaw.bot
+sources:
+  - https://github.com/openclaw/openclaw
+
+keywords:
+  - ai
+  - assistant
+  - chatbot
+  - claude
+  - openai
+  - telegram
+  - discord
+  - whatsapp
+
+maintainers:
+  - name: OpenClaw Team

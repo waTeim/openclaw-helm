@@ -1,0 +1,38 @@
+# Minimal configuration for local development / port-forward access
+# Usage: helm install openclaw ./openclaw -f examples/values-minimal.yaml
+
+# Use local image for development (build with: docker build -t openclaw:local .)
+image:
+  registry: ""
+  repository: openclaw
+  tag: local
+  pullPolicy: IfNotPresent
+
+# Minimal persistence for testing (increase for production)
+persistence:
+  enabled: true
+  size: 5Gi
+
+# Lower resource limits for development
+resources:
+  limits:
+    memory: 1Gi
+    cpu: 500m
+  requests:
+    memory: 256Mi
+    cpu: 100m
+
+# No ingress - use port-forward:
+# kubectl port-forward openclaw-0 18789:18789
+ingress:
+  enabled: false
+
+# Create secrets from values (dev only - use existingSecret in production)
+secrets:
+  create: true
+  data:
+    gatewayToken: ""  # Auto-generated
+
+# Allow startup without full configuration (for initial setup)
+gateway:
+  allowUnconfigured: true

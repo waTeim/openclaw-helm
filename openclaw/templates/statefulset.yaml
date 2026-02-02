@@ -79,7 +79,7 @@ spec:
                 exit 0
               fi
               echo "Running non-interactive onboarding..."
-              node dist/index.js onboard --non-interactive --no-install-daemon {{ range .Values.onboarding.extraArgs }}{{ . }} {{ end }}
+              node dist/index.js onboard --non-interactive --accept-risk --no-install-daemon {{ range .Values.onboarding.extraArgs }}{{ . }} {{ end }}
               echo "Onboarding complete"
           env:
             {{- range $key, $value := .Values.env }}

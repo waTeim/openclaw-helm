@@ -123,6 +123,14 @@ spec:
                   key: anthropicApiKey
                   optional: true
             {{- end }}
+            {{- if or .Values.secrets.data.openaiApiKey .Values.secrets.existingSecret }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "openclaw.secretName" . }}
+                  key: openaiApiKey
+                  optional: true
+            {{- end }}
           volumeMounts:
             - name: data
               mountPath: /home/node/.openclaw

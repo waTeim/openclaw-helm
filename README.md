@@ -140,7 +140,7 @@ kubectl exec -it openclaw-0 -- node dist/index.js health
 This project builds upon:
 
 - **[OpenClaw](https://github.com/openclaw/openclaw)** - The upstream OpenClaw project providing the AI assistant functionality, container images, and deployment documentation
-- **[Clawdbot Helm Chart](./clawdbot/)** - Original Helm chart patterns for Kubernetes deployment, persistence, probes, and security configuration
+- **[sirily11/clawdbot](https://github.com/sirily11/clawdbot)** - Original Clawdbot Helm chart by [@sirily11](https://github.com/sirily11), providing Kubernetes deployment patterns, persistence, probes, and security configuration
 
 ## Development
 

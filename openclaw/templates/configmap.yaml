@@ -1,10 +1,13 @@
 {{- if .Values.config.create -}}
 {{- $cfg := deepCopy .Values.config.data -}}
+{{- $authMap := (include "openclaw.authMap" . | fromYaml) -}}
 
 {{- $profiles := dict -}}
-{{- range .Values.authProfiles }}
-{{- $_ := set $profiles .id (dict "mode" .mode "provider" .provider) -}}
-{{- end -}}
+{{- range .Values.auth.providers }}
+  {{- $spec := (get $authMap .) -}}
+  {{- if not $spec }}{{ fail (printf "Unknown auth provider: %s" .) }}{{- end }}
+  {{- $_ := set $profiles $spec.profileId (dict "mode" $spec.mode "provider" .) -}}
+{{- end }}
 
 {{- if not (hasKey $cfg "auth") -}}
 {{- $_ := set $cfg "auth" (dict) -}}

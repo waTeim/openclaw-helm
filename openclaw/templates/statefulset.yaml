@@ -1,3 +1,4 @@
+{{- $authMap := (include "openclaw.authMap" . | fromYaml) -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -101,23 +102,22 @@ spec:
             - -c
             - |
               set -eu
-
+              mkdir -p /home/node/.openclaw/credentials
               MARKER_FILE="{{ .Values.onboarding.markerFile }}"
               if [ -f "$MARKER_FILE" ]; then
-                echo "Onboarding marker file exists ($MARKER_FILE), skipping onboarding"
+                echo "Onboarding marker exists, skipping"
                 exit 0
               fi
 
-              echo "Running non-interactive onboarding..."
+              cmd='node dist/index.js onboard --non-interactive --accept-risk --skip-health --no-install-daemon'
 
-              cmd='node dist/index.js onboard --non-interactive --accept-risk --auth-choice apiKey --skip-health --no-install-daemon'
-
-              if [ -n "${OPENAI_API_KEY:-}" ]; then
-                cmd="$cmd --openai-api-key \"$OPENAI_API_KEY\""
+              {{- range .Values.auth.providers }}
+              {{- $spec := (get $authMap .) -}}
+              {{- if not $spec }}{{ fail (printf "Unknown auth provider: %s" .) }}{{- end }}
+              if [ -n "${{ $spec.envVar }}:-" ]; then
+                cmd="$cmd {{ $spec.onboardFlag }} \"${{ $spec.envVar }}\""
               fi
-              if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-                cmd="$cmd --anthropic-api-key \"$ANTHROPIC_API_KEY\""
-              fi
+              {{- end }}
 
               {{- range .Values.onboarding.extraArgs }}
               cmd="$cmd {{ . }}"
@@ -126,10 +126,7 @@ spec:
               echo "Running: $cmd"
               eval "$cmd"
 
-              mkdir -p "$(dirname "$MARKER_FILE")"
-              echo "ok $(date -Iseconds 2>/dev/null || date)" > "$MARKER_FILE"
-
-              echo "Onboarding complete"
+              echo "ok $(date 2>/dev/null || true)" > "$MARKER_FILE"
 
           env:
             {{- range $key, $value := .Values.env }}
@@ -165,12 +162,13 @@ spec:
                   key: claudeWebCookie
                   optional: true
             {{- end }}
-            {{- range .Values.authProfiles }}
-            - name: {{ .envVar }}
+            {{- range .Values.auth.providers }}
+            {{- $spec := (get $authMap .) }}
+            - name: {{ $spec.envVar }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "openclaw.secretName" $ }}
-                  key: {{ .secretKey }}
+                  key: {{ $spec.secretKey }}
                   optional: true
             {{- end }}
           volumeMounts:
@@ -243,12 +241,13 @@ spec:
                   key: claudeWebCookie
                   optional: true
             {{- end }}
-            {{- range .Values.authProfiles }}
-            - name: {{ .envVar }}
+            {{- range .Values.auth.providers }}
+            {{- $spec := (get $authMap .) }}
+            - name: {{ $spec.envVar }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "openclaw.secretName" $ }}
-                  key: {{ .secretKey }}
+                  key: {{ $spec.secretKey }}
                   optional: true
             {{- end }}
           ports:

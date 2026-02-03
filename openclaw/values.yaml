@@ -122,20 +122,11 @@ env:
 # =============================================================================
 # List of auth providers
 #
-#  providers:
-#     anthropic, anthropicApiKey, ANTHROPIC_API_KEY
-#     openai, openaiApiKey, OPENAI_API_KEY
-#
-# Example:
-#
-# - id: "anthropic:default"
-#   provider: anthropic
-#   mode: token
-#   secretKey: anthropicApiKey
-#   envVar: ANTHROPIC_API_KEY
-#   value: ""
+#  anthropic
+#  openai
 # =============================================================================
-authProfiles: []
+auth:
+  providers: []
 
 # =============================================================================
 # SECRETS CONFIGURATION
@@ -156,9 +147,6 @@ secrets:
   #   openaiApiKey     -> OPENAI_API_KEY (optional)
   data:
     gatewayToken: ""  # Auto-generated 64-char hex if empty
-    claudeSessionKey: ""
-    claudeWebKey: ""
-    claudeWebCookie: ""
 
 # =============================================================================
 # CONFIG FILE (openclaw.json)

@@ -1,13 +1,13 @@
-# OpenClaw Helm Charts
+# OpenClaw Helm Chart
 
-Helm charts for deploying [OpenClaw](https://github.com/openclaw/openclaw) - a personal AI assistant with multi-channel support (WhatsApp, Telegram, Discord) - on Kubernetes.
+Helm chart for deploying [OpenClaw](https://github.com/openclaw/openclaw) - a personal AI assistant with multi-channel support (WhatsApp, Telegram, Discord) - on Kubernetes.
 
 ## Charts
 
 | Chart | Description | Version |
 |-------|-------------|---------|
-| [openclaw](./openclaw/) | Production-grade Helm chart for OpenClaw | 1.0.0 |
-| [clawdbot](./clawdbot/) | Legacy chart (deprecated, use openclaw) | 1.0.0 |
+| [openclaw](./openclaw/) | Production-grade Helm chart for OpenClaw | 1.2.0 |
+| [clawdbot](./clawdbot/) | Legacy chart (for reference, use openclaw) | 1.0.0 |
 
 ## Quick Start
 

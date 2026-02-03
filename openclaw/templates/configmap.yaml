@@ -1,4 +1,16 @@
 {{- if .Values.config.create -}}
+{{- $cfg := deepCopy .Values.config.data -}}
+
+{{- $profiles := dict -}}
+{{- range .Values.authProfiles }}
+{{- $_ := set $profiles .id (dict "mode" .mode "provider" .provider) -}}
+{{- end -}}
+
+{{- if not (hasKey $cfg "auth") -}}
+{{- $_ := set $cfg "auth" (dict) -}}
+{{- end -}}
+{{- $_ := set $cfg.auth "profiles" $profiles -}}
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,5 +19,5 @@ metadata:
     {{- include "openclaw.labels" . | nindent 4 }}
 data:
   openclaw.json: |
-    {{ .Values.config.data | toJson | nindent 4 }}
+    {{ $cfg | toJson | nindent 4 }}
 {{- end }}

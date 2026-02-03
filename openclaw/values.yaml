@@ -120,6 +120,24 @@ env:
   OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
 
 # =============================================================================
+# List of auth providers
+#
+#  providers:
+#     anthropic, anthropicApiKey, ANTHROPIC_API_KEY
+#     openai, openaiApiKey, OPENAI_API_KEY
+#
+# Example:
+#
+# - id: "anthropic:default"
+#   provider: anthropic
+#   mode: token
+#   secretKey: anthropicApiKey
+#   envVar: ANTHROPIC_API_KEY
+#   value: ""
+# =============================================================================
+authProfiles: []
+
+# =============================================================================
 # SECRETS CONFIGURATION
 # =============================================================================
 # IMPORTANT: Never commit API keys to Git. Use existingSecret in production.
@@ -141,8 +159,6 @@ secrets:
     claudeSessionKey: ""
     claudeWebKey: ""
     claudeWebCookie: ""
-    anthropicApiKey: ""
-    openaiApiKey: ""
 
 # =============================================================================
 # CONFIG FILE (openclaw.json)
@@ -167,14 +183,6 @@ config:
       list:
         - id: main
           default: true
-    auth:
-      profiles:
-        "anthropic:default":
-          mode: token
-          provider: anthropic
-        "openai:default":
-          mode: token
-          provider: openai
     gateway:
       mode: local
       bind: auto

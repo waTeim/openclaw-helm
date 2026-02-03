@@ -46,14 +46,41 @@ spec:
             - sh
             - -c
             - |
-              echo "Initializing configuration..."
+              set -eu
+
+              SRC="/config/openclaw.json"
+              DST="/home/node/.openclaw/openclaw.json"
+              HASHFILE="/home/node/.openclaw/.openclaw.json.sha256"
+              BACKUP="/home/node/.openclaw/openclaw.json.bak"
+
+              echo "Initializing configuration (sha256 sync)..."
               mkdir -p /home/node/.openclaw
-              if [ ! -f /home/node/.openclaw/openclaw.json ]; then
-                echo "Copying default config..."
-                cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+
+              [ -f "$SRC" ] || { echo "ERROR: missing source config: $SRC" >&2; exit 1; }
+
+              SRC_HASH="$(sha256sum "$SRC" | awk '{print $1}')"
+
+              # Seed if destination is missing
+              if [ ! -f "$DST" ]; then
+                echo "Destination missing; copying config..."
+                cp "$SRC" "$DST"
+                echo "$SRC_HASH" > "$HASHFILE"
                 echo "Config initialized"
+                exit 0
+              fi
+
+              OLD_HASH=""
+              [ -f "$HASHFILE" ] && OLD_HASH="$(cat "$HASHFILE" 2>/dev/null || true)"
+
+              # Update if hashfile missing OR hash changed
+              if [ -z "$OLD_HASH" ] || [ "$OLD_HASH" != "$SRC_HASH" ]; then
+                echo "Config update needed (no hash or changed). Updating..."
+                cp "$DST" "$BACKUP" || true
+                cp "$SRC" "$DST"
+                echo "$SRC_HASH" > "$HASHFILE"
+                echo "Config updated"
               else
-                echo "Config already exists, skipping"
+                echo "Config hash matches; skipping"
               fi
           volumeMounts:
             - name: config
@@ -73,14 +100,37 @@ spec:
             - sh
             - -c
             - |
+              set -eu
+
               MARKER_FILE="{{ .Values.onboarding.markerFile }}"
               if [ -f "$MARKER_FILE" ]; then
                 echo "Onboarding marker file exists ($MARKER_FILE), skipping onboarding"
                 exit 0
               fi
+
               echo "Running non-interactive onboarding..."
-              node dist/index.js onboard --non-interactive --accept-risk --no-install-daemon {{ range .Values.onboarding.extraArgs }}{{ . }} {{ end }}
+
+              cmd='node dist/index.js onboard --non-interactive --accept-risk --auth-choice apiKey --skip-health --no-install-daemon'
+
+              if [ -n "${OPENAI_API_KEY:-}" ]; then
+                cmd="$cmd --openai-api-key \"$OPENAI_API_KEY\""
+              fi
+              if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+                cmd="$cmd --anthropic-api-key \"$ANTHROPIC_API_KEY\""
+              fi
+
+              {{- range .Values.onboarding.extraArgs }}
+              cmd="$cmd {{ . }}"
+              {{- end }}
+
+              echo "Running: $cmd"
+              eval "$cmd"
+
+              mkdir -p "$(dirname "$MARKER_FILE")"
+              echo "ok $(date -Iseconds 2>/dev/null || date)" > "$MARKER_FILE"
+
               echo "Onboarding complete"
+
           env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
@@ -115,20 +165,12 @@ spec:
                   key: claudeWebCookie
                   optional: true
             {{- end }}
-            {{- if or .Values.secrets.data.anthropicApiKey .Values.secrets.existingSecret }}
-            - name: ANTHROPIC_API_KEY
+            {{- range .Values.authProfiles }}
+            - name: {{ .envVar }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "openclaw.secretName" . }}
-                  key: anthropicApiKey
-                  optional: true
-            {{- end }}
-            {{- if or .Values.secrets.data.openaiApiKey .Values.secrets.existingSecret }}
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "openclaw.secretName" . }}
-                  key: openaiApiKey
+                  name: {{ include "openclaw.secretName" $ }}
+                  key: {{ .secretKey }}
                   optional: true
             {{- end }}
           volumeMounts:
@@ -201,20 +243,12 @@ spec:
                   key: claudeWebCookie
                   optional: true
             {{- end }}
-            {{- if or .Values.secrets.data.anthropicApiKey .Values.secrets.existingSecret }}
-            - name: ANTHROPIC_API_KEY
+            {{- range .Values.authProfiles }}
+            - name: {{ .envVar }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "openclaw.secretName" . }}
-                  key: anthropicApiKey
-                  optional: true
-            {{- end }}
-            {{- if or .Values.secrets.data.openaiApiKey .Values.secrets.existingSecret }}
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "openclaw.secretName" . }}
-                  key: openaiApiKey
+                  name: {{ include "openclaw.secretName" $ }}
+                  key: {{ .secretKey }}
                   optional: true
             {{- end }}
           ports:

@@ -1,27 +1,24 @@
-# OpenClaw Helm Chart
+# OpenClaw Kube
 
-Helm chart for deploying [OpenClaw](https://github.com/openclaw/openclaw) - a personal AI assistant with multi-channel support (WhatsApp, Telegram, Discord) - on Kubernetes.
+Kubernetes resources for deploying [OpenClaw](https://github.com/openclaw/openclaw) - a personal AI assistant with multi-channel support (WhatsApp, Telegram, Discord).
 
-## Charts
+## Repository Structure
 
-| Chart | Description | Version |
-|-------|-------------|---------|
-| [openclaw](./openclaw/) | Production-grade Helm chart for OpenClaw | 1.2.0 |
-| [clawdbot](./clawdbot/) | Legacy chart (for reference, use openclaw) | 1.0.0 |
+| Path | Description |
+|------|-------------|
+| [chart/](./chart/) | Helm chart for deploying OpenClaw on Kubernetes |
+| [bin/](./bin/) | Diagnostic and operational scripts |
+| [prompts/](./prompts/) | Historical build prompts used during chart development |
 
 ## Quick Start
 
 ```bash
-# Add the repository (if published)
-# helm repo add openclaw https://openclaw.github.io/openclaw-helm
-# helm repo update
-
-# Or install from local checkout
-git clone https://github.com/openclaw/openclaw-helm.git
-cd openclaw-helm
+# Clone the repository
+git clone https://github.com/openclaw/openclaw-kube.git
+cd openclaw-kube
 
 # Install with default values
-helm install openclaw ./openclaw
+helm install openclaw ./chart
 
 # Access via port-forward
 kubectl port-forward openclaw-0 18789:18789
@@ -34,13 +31,13 @@ kubectl port-forward openclaw-0 18789:18789
 ### Basic Installation
 
 ```bash
-helm install openclaw ./openclaw
+helm install openclaw ./chart
 ```
 
 ### With Ingress and TLS
 
 ```bash
-helm install openclaw ./openclaw \
+helm install openclaw ./chart \
   --set ingress.enabled=true \
   --set ingress.domain=openclaw.example.com \
   --set ingress.tls.enabled=true \
@@ -51,16 +48,16 @@ helm install openclaw ./openclaw \
 
 ```bash
 # Minimal (local development)
-helm install openclaw ./openclaw -f openclaw/examples/values-minimal.yaml
+helm install openclaw ./chart -f chart/examples/values-minimal.yaml
 
 # Production with ingress
-helm install openclaw ./openclaw -f openclaw/examples/values-ingress.yaml
+helm install openclaw ./chart -f chart/examples/values-ingress.yaml
 
 # With RBAC for sandbox execution
-helm install openclaw ./openclaw -f openclaw/examples/values-rbac-operator.yaml
+helm install openclaw ./chart -f chart/examples/values-rbac-operator.yaml
 
 # Automatic non-interactive onboarding
-helm install openclaw ./openclaw -f openclaw/examples/values-noninteractive-onboard.yaml
+helm install openclaw ./chart -f chart/examples/values-noninteractive-onboard.yaml
 ```
 
 ### Production Secrets
@@ -75,7 +72,7 @@ kubectl create secret generic openclaw-secrets \
   --from-literal=claudeSessionKey=your-session-key
 
 # Install referencing the secret
-helm install openclaw ./openclaw \
+helm install openclaw ./chart \
   --set secrets.create=false \
   --set secrets.existingSecret=openclaw-secrets
 ```
@@ -97,7 +94,7 @@ Key configuration options:
 | `rbac.create` | Create namespaced RBAC | `false` |
 | `onboarding.enabled` | Auto-onboarding initContainer | `false` |
 
-See [openclaw/values.yaml](./openclaw/values.yaml) for full configuration reference.
+See [chart/values.yaml](./chart/values.yaml) for full configuration reference.
 
 ## Architecture
 
@@ -153,27 +150,26 @@ This project builds upon:
 ### Linting
 
 ```bash
-helm lint ./openclaw
-helm lint ./clawdbot
+helm lint ./chart
 ```
 
 ### Template Rendering
 
 ```bash
-helm template openclaw ./openclaw
-helm template openclaw ./openclaw --debug
+helm template openclaw ./chart
+helm template openclaw ./chart --debug
 ```
 
 ### Dry-Run Installation
 
 ```bash
-helm install openclaw ./openclaw --dry-run --debug
+helm install openclaw ./chart --dry-run --debug
 ```
 
 ### Testing
 
 ```bash
-helm install openclaw ./openclaw
+helm install openclaw ./chart
 helm test openclaw
 ```
 

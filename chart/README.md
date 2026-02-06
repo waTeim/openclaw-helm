@@ -5,7 +5,7 @@ A Helm chart for deploying [OpenClaw](https://openclaw.bot) - a personal AI assi
 ## TL;DR
 
 ```bash
-helm install openclaw ./openclaw
+helm install openclaw ./chart
 kubectl port-forward openclaw-0 18789:18789
 # Visit http://localhost:18789
 ```
@@ -30,29 +30,29 @@ OpenClaw is a **single-user, stateful application**. This chart deploys a Statef
 ### Basic Installation
 
 ```bash
-helm install openclaw ./openclaw
+helm install openclaw ./chart
 ```
 
 ### With Custom Values
 
 ```bash
-helm install openclaw ./openclaw -f my-values.yaml
+helm install openclaw ./chart -f my-values.yaml
 ```
 
 ### Example Configurations
 
 ```bash
 # Minimal (local development)
-helm install openclaw ./openclaw -f examples/values-minimal.yaml
+helm install openclaw ./chart -f examples/values-minimal.yaml
 
 # With Ingress and TLS
-helm install openclaw ./openclaw -f examples/values-ingress.yaml
+helm install openclaw ./chart -f examples/values-ingress.yaml
 
 # With RBAC for sandbox execution
-helm install openclaw ./openclaw -f examples/values-rbac-operator.yaml
+helm install openclaw ./chart -f examples/values-rbac-operator.yaml
 
 # With automatic onboarding
-helm install openclaw ./openclaw -f examples/values-noninteractive-onboard.yaml
+helm install openclaw ./chart -f examples/values-noninteractive-onboard.yaml
 ```
 
 ## Configuration
@@ -217,7 +217,7 @@ This configuration is compatible with PodSecurity "restricted" policy.
 ## Upgrading
 
 ```bash
-helm upgrade openclaw ./openclaw -f my-values.yaml
+helm upgrade openclaw ./chart -f my-values.yaml
 ```
 
 The StatefulSet will perform a rolling update. State is preserved in the PVC.
@@ -264,13 +264,13 @@ kubectl exec -it openclaw-0 -- node dist/index.js doctor
 
 ```bash
 # Lint chart
-helm lint ./openclaw
+helm lint ./chart
 
 # Render templates
-helm template openclaw ./openclaw
+helm template openclaw ./chart
 
 # Dry-run install
-helm install openclaw ./openclaw --dry-run --debug
+helm install openclaw ./chart --dry-run --debug
 
 # Run tests after install
 helm test openclaw

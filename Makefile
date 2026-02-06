@@ -12,7 +12,7 @@ IMAGE_REF = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 .PHONY: configure build push clean
 
 configure:
-	python3 bin/configure-make.py
+	python3 bin/configure.py
 
 build:
 	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(IMAGE_REF) .

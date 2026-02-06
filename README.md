@@ -7,7 +7,9 @@ Kubernetes resources for deploying [OpenClaw](https://github.com/openclaw/opencl
 | Path | Description |
 |------|-------------|
 | [chart/](./chart/) | Helm chart for deploying OpenClaw on Kubernetes |
-| [bin/](./bin/) | Diagnostic and operational scripts |
+| [Dockerfile](./Dockerfile) | Builds OpenClaw + Playwright addon image |
+| [Makefile](./Makefile) | Image build/push targets (reads `build-config.json`) |
+| [bin/](./bin/) | Operational scripts (`configure.py`, `openclaw_diag.py`) |
 | [prompts/](./prompts/) | Historical build prompts used during chart development |
 
 ## Quick Start
@@ -24,6 +26,29 @@ helm install openclaw ./chart
 kubectl port-forward openclaw-0 18789:18789
 
 # Visit http://localhost:18789
+```
+
+## Image Build
+
+The `Dockerfile` extends an upstream OpenClaw base image with Playwright browsers. Use `bin/configure.py` to set the source and target image coordinates, then build with Make.
+
+```bash
+# Configure (interactive — answers saved to build-config.json for next time)
+make configure
+
+# Build the image
+make build
+
+# Build and push
+make push
+```
+
+You can also pass values directly:
+
+```bash
+python3 bin/configure.py \
+  --source-registry ghcr.io --source-image openclaw/openclaw --source-tag latest \
+  --target-registry ghcr.io/myorg --target-image openclaw-playwright
 ```
 
 ## Usage

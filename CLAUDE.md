@@ -9,12 +9,21 @@ This is a Kubernetes repository (`openclaw-kube`) for deploying [OpenClaw](https
 ### Repository Structure
 
 - **chart/** - Helm chart for deploying OpenClaw on Kubernetes
-- **bin/** - Diagnostic and operational scripts (e.g., `openclaw_diag.py`)
+- **bin/** - Operational scripts (`configure.py`, `openclaw_diag.py`)
+- **Dockerfile** - Builds an OpenClaw + Playwright addon image from an upstream base
+- **Makefile** - Image build/push targets, reads config from `build-config.json`
 - **prompts/v1/** - Historical build prompts used during initial chart development
 
 ## Common Commands
 
 ```bash
+# Configure image build (interactive, saves to build-config.json)
+make configure          # or: python3 bin/configure.py
+
+# Build and push container image
+make build
+make push
+
 # Lint chart
 helm lint ./chart
 
@@ -31,6 +40,13 @@ helm package ./chart -d .cr-release-packages
 # Validate schema
 helm lint ./chart --strict
 ```
+
+## Image Build
+
+The `Dockerfile` extends an upstream OpenClaw base image with Playwright browser
+support. `bin/configure.py` prompts for source and target image coordinates
+(registry, image, tag) and writes `build-config.json`. The `Makefile` reads
+this JSON directly via `$(shell python3 ...)` — no intermediate `make.env`.
 
 ## Architecture
 

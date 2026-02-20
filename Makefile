@@ -9,7 +9,7 @@ endif
 
 IMAGE_REF = $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: configure build push clean
+.PHONY: configure build push clean update-tag
 
 configure:
 	python3 bin/configure.py
@@ -22,3 +22,6 @@ push: build
 
 clean:
 	-docker rmi $(IMAGE_REF)
+
+update-tag:
+	python3 bin/update_openclaw_tag.py

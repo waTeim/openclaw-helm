@@ -115,7 +115,7 @@ env:
   NODE_ENV: production
   HOME: /home/node
   TERM: xterm-256color
-  BROWSER: "echo"  # Suppress browser launch attempts
+  # BROWSER: "echo"  # Suppress browser launch attempts
   OPENCLAW_STATE_DIR: /home/node/.openclaw
   OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
 

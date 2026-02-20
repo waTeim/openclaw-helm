@@ -5,7 +5,7 @@ description: A Helm chart for OpenClaw - a personal AI assistant with multi-chan
 type: application
 
 # Chart version - increment on changes to chart templates
-version: 1.3.0
+version: 1.3.1
 
 # OpenClaw application version
 appVersion: "1.3.0"

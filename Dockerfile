@@ -33,6 +33,7 @@ WORKDIR /app
 RUN npm install -g playwright && \
     mkdir -p /usr/local/share/playwright && \
     playwright install chromium firefox webkit && \
+    ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \
     chown -R node:node /usr/local/share/playwright
 
 # Return to hardened runtime user

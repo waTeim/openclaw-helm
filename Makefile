@@ -15,7 +15,7 @@ configure:
 	python3 bin/configure.py
 
 build:
-	docker build --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(IMAGE_REF) .
+	docker build --platform=linux/amd64 --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(IMAGE_REF) .
 
 push: build
 	docker push $(IMAGE_REF)

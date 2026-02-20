@@ -30,6 +30,13 @@ kubectl port-forward openclaw-0 18789:18789
 
 ## Image Build
 
+### Update to Latest OpenClaw Release
+
+```bash
+# Updates chart/values.yaml image.tag to the latest OpenClaw release
+make update-tag
+```
+
 The `Dockerfile` extends an upstream OpenClaw base image with Playwright browsers. Use `bin/configure.py` to set the source and target image coordinates, then build with Make.
 
 ```bash

@@ -87,8 +87,8 @@ spec:
             - name: config
               mountPath: /config
             - name: data
-              mountPath: /home/node/.openclaw
-              subPath: openclaw-state
+              mountPath: /home/node
+              subPath: openclaw-home
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
         {{- end }}
@@ -173,8 +173,8 @@ spec:
             {{- end }}
           volumeMounts:
             - name: data
-              mountPath: /home/node/.openclaw
-              subPath: openclaw-state
+              mountPath: /home/node
+              subPath: openclaw-home
             - name: data
               mountPath: /home/node/.openclaw/workspace
               subPath: openclaw-workspace
@@ -259,8 +259,8 @@ spec:
               protocol: TCP
           volumeMounts:
             - name: data
-              mountPath: /home/node/.openclaw
-              subPath: openclaw-state
+              mountPath: /home/node
+              subPath: openclaw-home
             - name: data
               mountPath: /home/node/.openclaw/workspace
               subPath: openclaw-workspace

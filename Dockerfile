@@ -6,6 +6,11 @@ FROM ${BASE_IMAGE}
 # We need root to install OS deps and browser binaries cleanly.
 USER root
 
+# Move upstream home contents from /home/node to /app/home
+RUN mkdir -p /app/home && \
+    find /home/node -mindepth 1 -maxdepth 1 -exec mv {} /app/home/ \; && \
+    chown -R node:node /app/home
+
 # Where Playwright browser binaries will live (your preference)
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 
@@ -35,6 +40,8 @@ RUN npm install -g playwright && \
     playwright install chromium firefox webkit && \
     ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \
     chown -R node:node /usr/local/share/playwright
+
+RUN CHROME=$(ls -d /usr/local/share/playwright/chromium-*/chrome-linux*/chrome | head -n1) && ln -sf "$CHROME" /usr/bin/chromium
 
 # Return to hardened runtime user
 USER node

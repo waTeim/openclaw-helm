@@ -6,7 +6,9 @@
 {{- range .Values.auth.providers }}
   {{- $spec := (get $authMap .) -}}
   {{- if not $spec }}{{ fail (printf "Unknown auth provider: %s" .) }}{{- end }}
+  {{- if and $spec.profileId $spec.mode }}
   {{- $_ := set $profiles $spec.profileId (dict "mode" $spec.mode "provider" .) -}}
+  {{- end }}
 {{- end }}
 
 {{- if not (hasKey $cfg "auth") -}}

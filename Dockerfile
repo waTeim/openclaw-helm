@@ -6,6 +6,11 @@ FROM ${BASE_IMAGE}
 # We need root to install OS deps and browser binaries cleanly.
 USER root
 
+# Move upstream home contents from /home/node to /app/home
+RUN mkdir -p /app/home && \
+    find /home/node -mindepth 1 -maxdepth 1 -exec mv {} /app/home/ \; && \
+    chown -R node:node /app/home
+
 # Where Playwright browser binaries will live (your preference)
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 
@@ -14,6 +19,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       ca-certificates curl \
+      tini jq vim \
       libnss3 libnspr4 \
       libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 \
       libx11-6 libxcomposite1 libxdamage1 libxrandr2 libxfixes3 libxext6 libxi6 libxtst6 \
@@ -30,12 +36,18 @@ RUN apt-get update && \
 
 # Install Playwright and download browser binaries.
 WORKDIR /app
-RUN npm install -g playwright && \
+RUN npm install -g playwright openclaw && \
     mkdir -p /usr/local/share/playwright && \
     playwright install chromium firefox webkit && \
+    ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \
     chown -R node:node /usr/local/share/playwright
+
+RUN CHROME=$(ls -d /usr/local/share/playwright/chromium-*/chrome-linux*/chrome | head -n1) && ln -sf "$CHROME" /usr/bin/chromium
 
 # Return to hardened runtime user
 USER node
 
-# Inherit the upstream CMD/ENTRYPOINT (gateway)
+# Use tini as PID 1 to reap zombie processes
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Inherit the upstream CMD (gateway)

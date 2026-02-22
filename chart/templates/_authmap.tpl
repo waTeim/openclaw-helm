@@ -25,8 +25,6 @@ gemini:
   envVar: GEMINI_API_KEY
   onboardFlag: --gemini-api-key
 brave:
-  mode: token
-  profileId: "brave:default"
   secretKey: braveApiKey
   envVar: BRAVE_API_KEY
   onboardFlag: ""

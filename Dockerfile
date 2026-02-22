@@ -19,7 +19,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       ca-certificates curl \
-      tini \
+      tini jq vim \
       libnss3 libnspr4 \
       libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 \
       libx11-6 libxcomposite1 libxdamage1 libxrandr2 libxfixes3 libxext6 libxi6 libxtst6 \
@@ -36,7 +36,7 @@ RUN apt-get update && \
 
 # Install Playwright and download browser binaries.
 WORKDIR /app
-RUN npm install -g playwright && \
+RUN npm install -g playwright openclaw && \
     mkdir -p /usr/local/share/playwright && \
     playwright install chromium firefox webkit && \
     ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \

@@ -114,9 +114,11 @@ spec:
               {{- range .Values.auth.providers }}
               {{- $spec := (get $authMap .) -}}
               {{- if not $spec }}{{ fail (printf "Unknown auth provider: %s" .) }}{{- end }}
+              {{- if $spec.onboardFlag }}
               if [ -n "${{ $spec.envVar }}:-" ]; then
                 cmd="$cmd {{ $spec.onboardFlag }} \"${{ $spec.envVar }}\""
               fi
+              {{- end }}
               {{- end }}
 
               {{- range .Values.onboarding.extraArgs }}

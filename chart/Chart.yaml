@@ -8,7 +8,7 @@ type: application
 version: 1.4.0
 
 # OpenClaw application version
-appVersion: "1.4.0"
+appVersion: "1.4.1"
 
 home: https://openclaw.bot
 sources:

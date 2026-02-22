@@ -36,7 +36,7 @@ RUN apt-get update && \
 
 # Install Playwright and download browser binaries.
 WORKDIR /app
-RUN npm install -g playwright && \
+RUN npm install -g playwright openclaw && \
     mkdir -p /usr/local/share/playwright && \
     playwright install chromium firefox webkit && \
     ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \

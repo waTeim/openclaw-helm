@@ -45,6 +45,10 @@ RUN npm install -g playwright openclaw && \
 # Install gogcli (Google Workspace CLI)
 RUN curl -fsSL https://gogcli.sh | bash
 
+# Install gateway wrapper script
+COPY scripts/openclaw-gateway.py /usr/local/bin/openclaw-gateway
+RUN chmod +x /usr/local/bin/openclaw-gateway
+
 RUN CHROME=$(ls -d /usr/local/share/playwright/chromium-*/chrome-linux*/chrome | head -n1) && ln -sf "$CHROME" /usr/bin/chromium
 
 # Return to hardened runtime user

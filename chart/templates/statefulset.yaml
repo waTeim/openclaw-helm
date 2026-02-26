@@ -191,20 +191,23 @@ spec:
         - name: gateway
           image: {{ include "openclaw.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
           args:
-            - node
-            - dist/index.js
-            - gateway
-            - --bind
-            - {{ .Values.gateway.bind }}
-            - --port
-            - {{ .Values.gateway.port | quote }}
-            {{- if .Values.gateway.allowUnconfigured }}
-            - --allow-unconfigured
-            {{- end }}
-            {{- range .Values.gateway.extraArgs }}
-            - {{ . }}
-            {{- end }}
+            - |
+              set -e
+              if [ -n "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
+                openclaw config set gateway.auth.token "$OPENCLAW_GATEWAY_TOKEN" >/dev/null 2>&1 || true
+              fi
+              cmd="node dist/index.js gateway --bind {{ .Values.gateway.bind }} --port {{ .Values.gateway.port | quote }}"
+              {{- if .Values.gateway.allowUnconfigured }}
+              cmd="$cmd --allow-unconfigured"
+              {{- end }}
+              {{- range .Values.gateway.extraArgs }}
+              cmd="$cmd {{ . }}"
+              {{- end }}
+              exec $cmd
           env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}

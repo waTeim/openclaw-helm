@@ -42,10 +42,20 @@ RUN npm install -g playwright openclaw && \
     ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \
     chown -R node:node /usr/local/share/playwright
 
+# Install gogcli (Google Workspace CLI)
+RUN curl -fsSL https://gogcli.sh | bash
+
+# Install gateway wrapper script
+COPY scripts/openclaw-gateway.py /usr/local/bin/openclaw-gateway
+RUN chmod +x /usr/local/bin/openclaw-gateway
+
 RUN CHROME=$(ls -d /usr/local/share/playwright/chromium-*/chrome-linux*/chrome | head -n1) && ln -sf "$CHROME" /usr/bin/chromium
 
 # Return to hardened runtime user
 USER node
+
+# Install voice-call plugin into OpenClaw
+RUN openclaw plugins install @openclaw/voice-call
 
 # Use tini as PID 1 to reap zombie processes
 ENTRYPOINT ["/usr/bin/tini", "--"]

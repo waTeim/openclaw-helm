@@ -192,9 +192,7 @@ spec:
           image: {{ include "openclaw.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - node
-            - dist/index.js
-            - gateway
+            - /usr/local/bin/openclaw-gateway
             - --bind
             - {{ .Values.gateway.bind }}
             - --port

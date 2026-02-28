@@ -18,7 +18,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 # Keep this list fairly complete to avoid runtime surprises.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      ca-certificates curl \
+      ca-certificates curl git make \
       tini jq vim \
       libnss3 libnspr4 \
       libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 \
@@ -46,7 +46,12 @@ RUN npm install -g playwright openclaw && \
     chown -R node:node /usr/local/share/playwright
 
 # Install gogcli (Google Workspace CLI)
-RUN curl -fsSL https://gogcli.sh | bash
+# Build from source and install single binary to /usr/local/bin
+RUN git clone https://github.com/gogcli/gogcli.git /tmp/gogcli && \
+    cd /tmp/gogcli && \
+    make build && \
+    cp ./bin/gog /usr/local/bin/gog && \
+    cd / && rm -rf /tmp/gogcli
 
 # Install gateway wrapper script
 COPY scripts/openclaw-gateway.py /usr/local/bin/openclaw-gateway

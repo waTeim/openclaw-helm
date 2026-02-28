@@ -1,5 +1,5 @@
 # ---- Build gogcli ----
-FROM golang:1.22-bookworm AS gogcli_builder
+FROM golang:1.24-bookworm AS gogcli_builder
 RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/gogcli/gogcli.git /tmp/gogcli && \

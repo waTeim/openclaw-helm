@@ -34,6 +34,9 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+# Install himalaya (CLI email client)
+RUN curl -sSL https://raw.githubusercontent.com/pimalaya/himalaya/master/install.sh | sh
+
 # Install Playwright and download browser binaries.
 WORKDIR /app
 RUN npm install -g playwright openclaw && \

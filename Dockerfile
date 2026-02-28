@@ -1,3 +1,11 @@
+# ---- Build gogcli ----
+FROM golang:1.22-bookworm AS gogcli_builder
+RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/gogcli/gogcli.git /tmp/gogcli && \
+    cd /tmp/gogcli && \
+    make build
+
 # ---- OpenClaw Gateway + Playwright (full) addon image ----
 ARG BASE_IMAGE=ghcr.io/openclaw/openclaw:latest
 FROM ${BASE_IMAGE}
@@ -18,7 +26,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 # Keep this list fairly complete to avoid runtime surprises.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      ca-certificates curl git make \
+      ca-certificates curl \
       tini jq vim \
       libnss3 libnspr4 \
       libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 \
@@ -45,13 +53,8 @@ RUN npm install -g playwright openclaw && \
     ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \
     chown -R node:node /usr/local/share/playwright
 
-# Install gogcli (Google Workspace CLI)
-# Build from source and install single binary to /usr/local/bin
-RUN git clone https://github.com/gogcli/gogcli.git /tmp/gogcli && \
-    cd /tmp/gogcli && \
-    make build && \
-    cp ./bin/gog /usr/local/bin/gog && \
-    cd / && rm -rf /tmp/gogcli
+# Install gogcli (Google Workspace CLI) from builder
+COPY --from=gogcli_builder /tmp/gogcli/bin/gog /usr/local/bin/gog
 
 # Install gateway wrapper script
 COPY scripts/openclaw-gateway.py /usr/local/bin/openclaw-gateway

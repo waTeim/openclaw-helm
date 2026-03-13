@@ -1,13 +1,11 @@
+ARG BASE_IMAGE=ghcr.io/openclaw/openclaw:latest
+
 # ---- Build gogcli ----
 FROM golang:1.24-bookworm AS gogcli_builder
-RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-RUN git clone https://github.com/gogcli/gogcli.git /tmp/gogcli && \
-    cd /tmp/gogcli && \
-    make build
+RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates
+RUN git clone https://github.com/steipete/gogcli.git /tmp/gogcli && cd /tmp/gogcli && make build
 
 # ---- OpenClaw Gateway + Playwright (full) addon image ----
-ARG BASE_IMAGE=ghcr.io/openclaw/openclaw:latest
 FROM ${BASE_IMAGE}
 
 # The upstream image switches to USER node at the end.

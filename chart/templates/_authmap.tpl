@@ -28,4 +28,8 @@ brave:
   secretKey: braveApiKey
   envVar: BRAVE_API_KEY
   onboardFlag: ""
+gog:
+  secretKey: gogKeyringPassword
+  envVar: GOG_KEYRING_PASSWORD
+  onboardFlag: ""
 {{- end -}}

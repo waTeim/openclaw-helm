@@ -1,5 +1,11 @@
-# ---- OpenClaw Gateway + Playwright (full) addon image ----
 ARG BASE_IMAGE=ghcr.io/openclaw/openclaw:latest
+
+# ---- Build gogcli ----
+FROM golang:1.24-bookworm AS gogcli_builder
+RUN apt-get update && apt-get install -y --no-install-recommends git make ca-certificates
+RUN git clone https://github.com/steipete/gogcli.git /tmp/gogcli && cd /tmp/gogcli && make build
+
+# ---- OpenClaw Gateway + Playwright (full) addon image ----
 FROM ${BASE_IMAGE}
 
 # The upstream image switches to USER node at the end.
@@ -34,6 +40,9 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+# Install himalaya (CLI email client)
+RUN curl -sSL https://raw.githubusercontent.com/pimalaya/himalaya/master/install.sh | sh
+
 # Install Playwright and download browser binaries.
 WORKDIR /app
 RUN npm install -g playwright openclaw && \
@@ -42,10 +51,20 @@ RUN npm install -g playwright openclaw && \
     ln -sf /usr/local/share/playwright/chromium-*/chrome-linux/chrome /usr/bin/chromium && \
     chown -R node:node /usr/local/share/playwright
 
+# Install gogcli (Google Workspace CLI) from builder
+COPY --from=gogcli_builder /tmp/gogcli/bin/gog /usr/local/bin/gog
+
+# Install gateway wrapper script
+COPY scripts/openclaw-gateway.py /usr/local/bin/openclaw-gateway
+RUN chmod +x /usr/local/bin/openclaw-gateway
+
 RUN CHROME=$(ls -d /usr/local/share/playwright/chromium-*/chrome-linux*/chrome | head -n1) && ln -sf "$CHROME" /usr/bin/chromium
 
 # Return to hardened runtime user
 USER node
+
+# Install voice-call plugin into OpenClaw
+RUN openclaw plugins install @openclaw/voice-call
 
 # Use tini as PID 1 to reap zombie processes
 ENTRYPOINT ["/usr/bin/tini", "--"]

@@ -24,4 +24,12 @@ gemini:
   secretKey: geminiApiKey
   envVar: GEMINI_API_KEY
   onboardFlag: --gemini-api-key
+brave:
+  secretKey: braveApiKey
+  envVar: BRAVE_API_KEY
+  onboardFlag: ""
+gog:
+  secretKey: gogKeyringPassword
+  envVar: GOG_KEYRING_PASSWORD
+  onboardFlag: ""
 {{- end -}}
